@@ -14,8 +14,8 @@
 
 init(_Transport, Req, _Args) ->
     % Load the certificate and private key for the SP
-    PrivKey = esaml_util:load_private_key("test.key"),
-    Cert = esaml_util:load_certificate("test.crt"),
+    PrivKey = esaml_util:load_private_key("priv/test.key"),
+    Cert = esaml_util:load_certificate("priv/test.crt"),
     % We build all of our URLs (in metadata, and in requests) based on this
     Base = "http://some.hostname.com/saml",
     % Certificate fingerprints to accept from our IDP
