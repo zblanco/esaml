@@ -140,7 +140,10 @@ load_private_key(Path) ->
             [KeyEntry] = public_key:pem_decode(KeyFile),
             Key = case public_key:pem_entry_decode(KeyEntry) of
                 #'PrivateKeyInfo'{privateKey = KeyData} ->
-                    public_key:der_decode('RSAPrivateKey', list_to_binary(KeyData));
+                    KeyDataBin = if is_list(KeyData) -> list_to_binary(KeyData);
+                                    true -> KeyData
+                                 end,
+                    public_key:der_decode('RSAPrivateKey', KeyDataBin);
                 Other -> Other
             end,
             ets:insert(esaml_privkey_cache, {Path, Key}),
