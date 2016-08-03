@@ -31,6 +31,8 @@ http://arekinath.github.io/esaml/
 
 The simplest way to use esaml in your app is with the `esaml_cowboy` module. There is an example under `examples/sp` that shows how to make a simple SAML SP in this way.
 
+Point your browser to: http://127.0.0.1:8080/saml/auth
+
 Each of the protocols you wish to support will normally require at least one distinct URL endpoint, plus one additional URL for the SAML SP metadata. In the `sp` example, only one protocol is used: the single-sign-on SP AuthnRequest -> Response + Assertion protocol.
 
 The typical approach is to use a single Cowboy route for all SAML endpoints:
