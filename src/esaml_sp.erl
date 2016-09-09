@@ -26,8 +26,7 @@
 add_xml_id(Xml) ->
     Xml#xmlElement{attributes = Xml#xmlElement.attributes ++ [
         #xmlAttribute{name = 'ID',
-            % value = "sbs" ++ uuid:to_string(uuid:uuid1()),
-            value = "sbs11e29700-7017-11e6-9a5f-e8b1fccbdffa",
+            value = "sbs" ++ uuid:to_string(uuid:uuid1()),
             namespace = #xmlNamespace{}}
         ]}.
 
@@ -230,11 +229,10 @@ validate_assertion(Xml, DuplicateFun, SP = #esaml_sp{}) ->
             end
         end,
         fun(AR) ->
-            % case DuplicateFun(AR, xmerl_dsig:digest(Xml)) of
-            %     ok -> AR;
-            %     _ -> {error, duplicate}
-            % end
-            AR
+            case DuplicateFun(AR, xmerl_dsig:digest(Xml)) of
+                ok -> AR;
+                _ -> {error, duplicate}
+            end
         end
     ], Xml).
 
