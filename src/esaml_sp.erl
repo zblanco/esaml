@@ -24,11 +24,9 @@
 %% @private
 -spec add_xml_id(xml()) -> xml().
 add_xml_id(Xml) ->
-    Id =  "sbs" ++ uuid:to_string(uuid:uuid1()),
-    io:format("############ Id  : ~p~n", [Id]),
     Xml#xmlElement{attributes = Xml#xmlElement.attributes ++ [
         #xmlAttribute{name = 'ID',
-            value = Id,
+            value = esaml_util:unique_id(),
             namespace = #xmlNamespace{}}
         ]}.
 

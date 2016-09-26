@@ -19,6 +19,7 @@
 -export([build_nsinfo/2]).
 -export([load_private_key/1, load_certificate_chain/1, load_certificate/1, load_metadata/2, load_metadata/1]).
 -export([convert_fingerprints/1]).
+-export([unique_id/0]).
 
 %% @doc Converts various ascii hex/base64 fingerprint formats to binary
 -spec convert_fingerprints([string() | binary()]) -> [binary()].
@@ -245,6 +246,9 @@ check_dupe_ets(A, Digest) ->
             end, []]),
             ok
     end.
+
+unique_id() ->
+    "sbs" ++ base64:encode_to_string(term_to_binary(erlang:make_ref())).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
