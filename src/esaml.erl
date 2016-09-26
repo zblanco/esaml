@@ -325,7 +325,7 @@ stale_time(A) ->
 
 check_stale(A) ->
     Now = erlang:localtime_to_universaltime(erlang:localtime()),
-    NowSecs = calendar:datetime_to_gregorian_seconds(Now),
+    NowSecs = calendar:datetime_to_gregorian_seconds(Now) - 7200, % work around for the 2hr diff
     T = stale_time(A),
     if (NowSecs > T) ->
         {error, stale_assertion};
@@ -340,6 +340,7 @@ check_stale(A) ->
 validate_assertion(AssertionXml, Recipient, Audience) ->
     case decode_assertion(AssertionXml) of
         {error, Reason} ->
+            io:format("@@@@@@@@@@@@@@@@Got error : ~p~n", [Reason]),
             {error, Reason};
         {ok, Assertion} ->
             esaml_util:threaduntil([

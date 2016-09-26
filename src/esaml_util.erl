@@ -65,7 +65,8 @@ saml_to_datetime(Stamp) ->
     %% check that time in UTC timezone because we don't handle another timezones properly
     $Z = binary:last(Rest),
     F = fun(B) -> list_to_integer(binary_to_list(B)) end,
-    {{F(YBin), F(MoBin), F(DBin)}, {F(HBin), F(MiBin), F(SBin)}}.
+    UTCTime = {{F(YBin), F(MoBin), F(DBin)}, {F(HBin), F(MiBin), F(SBin)}},
+    calendar:universal_time_to_local_time(UTCTime).
 
 %% @private
 -spec folduntil(F :: fun(), Acc :: term(), List :: []) -> AccOut :: term().

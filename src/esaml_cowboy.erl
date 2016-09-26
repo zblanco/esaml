@@ -54,7 +54,9 @@ reply_with_req(IDP, SignedXml, RelayState, Req) ->
     Target = esaml_binding:encode_http_redirect(IDP, SignedXml, RelayState),
     {UA, _} = cowboy_req:header(<<"user-agent">>, Req, <<"">>),
     IsIE = not (binary:match(UA, <<"MSIE">>) =:= nomatch),
-    if IsIE andalso (byte_size(Target) > 2042) ->
+    io:format("!!!!!!!!!!!!!!!!IsIE : ~p, size :  ~p~n", [IsIE, byte_size(Target)]),
+    % if IsIE andalso (byte_size(Target) > 2042) ->
+    if byte_size(Target) > 2042 ->
         Html = esaml_binding:encode_http_post(IDP, SignedXml, RelayState),
         cowboy_req:reply(200, [
             {<<"Cache-Control">>, <<"no-cache">>},
@@ -107,6 +109,7 @@ validate_logout(SP, Req) ->
 
 %% @private
 validate_logout(SP, SAMLEncoding, SAMLResponse, RelayState, Req2) ->
+    io:format("encoding : ~p Response : ~p~n", [SAMLEncoding, SAMLResponse]),
     case (catch esaml_binding:decode_response(SAMLEncoding, SAMLResponse)) of
         {'EXIT', Reason} ->
             {error, {bad_decode, Reason}, Req2};
