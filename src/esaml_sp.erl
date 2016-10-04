@@ -196,7 +196,6 @@ validate_assertion(Xml, SP = #esaml_sp{}) ->
 -spec validate_assertion(xml(), dupe_fun(), esaml:sp()) ->
         {ok, esaml:assertion()} | {error, Reason :: term()}.
 validate_assertion(EncXml, DuplicateFun, SP = #esaml_sp{}) ->
-    io:format("!!!!!!!!!!!!Validating assersion ~n"),
     Ns = [{"samlp", 'urn:oasis:names:tc:SAML:2.0:protocol'},
           {"saml", 'urn:oasis:names:tc:SAML:2.0:assertion'}],
 
