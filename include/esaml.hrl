@@ -100,4 +100,5 @@
 	trusted_fingerprints = [] :: [string() | binary()],
 	metadata_uri = "" :: string(),
 	consume_uri = "" :: string(),
-	logout_uri :: string() | undefined}).
+	logout_uri :: string() | undefined,
+	encrypt_mandatory = false :: boolean()}).

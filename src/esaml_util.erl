@@ -248,7 +248,7 @@ check_dupe_ets(A, Digest) ->
     end.
 
 unique_id() ->
-    "sbs" ++ base64:encode_to_string(term_to_binary(erlang:make_ref())).
+    "sbs" ++ re:replace(base64:encode_to_string(term_to_binary(erlang:make_ref())), "=", "", [{return, list}]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

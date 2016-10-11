@@ -110,11 +110,7 @@ setup(SP = #esaml_sp{trusted_fingerprints = FPs, metadata_uri = MetaURI,
         error("must specify a key to sign requests");
     true -> ok
     end,
-    if (not (SP#esaml_sp.key =:= undefined)) and (not (SP#esaml_sp.certificate =:= undefined)) ->
-        SP#esaml_sp{sp_sign_requests = true, sp_sign_metadata = true, trusted_fingerprints = Fingerprints};
-    true ->
-        SP#esaml_sp{trusted_fingerprints = Fingerprints}
-    end.
+    SP#esaml_sp{trusted_fingerprints = Fingerprints}.
 
 %% @doc Validate and parse a LogoutRequest element
 -spec validate_logout_request(xml(), esaml:sp()) ->
@@ -201,7 +197,10 @@ validate_assertion(EncXml, DuplicateFun, SP = #esaml_sp{}) ->
 
     Xml = 
     case xmerl_xpath:string("/samlp:Response/saml:Assertion", EncXml, [{namespace, Ns}]) of
-        [A] -> A;
+        [A] -> 
+            if SP#esaml_sp.encrypt_mandatory -> {error, assertion_not_encrypted};
+               true -> A
+            end;
         _ -> 
             case xmerl_xpath:string("/samlp:Response/saml:EncryptedAssertion", EncXml, [{namespace, Ns}]) of
                 [EncA] -> decrypt_assertion(EncA, SP, Ns);
@@ -209,7 +208,7 @@ validate_assertion(EncXml, DuplicateFun, SP = #esaml_sp{}) ->
             end
     end,
     case Xml of
-        {error, bad_assertion} = Error -> Error;
+        {error, _} = Error -> Error;
         Assertion ->
             esaml_util:threaduntil([
                 fun(A) ->
