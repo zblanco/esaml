@@ -248,7 +248,7 @@ check_dupe_ets(A, Digest) ->
     end.
 
 unique_id() ->
-    "sbs" ++ integer_to_list(crypto:rand_uniform(1, 1000000000000000000000000)).
+    "sbs" ++ integer_to_list(erlang:unique_integer([positive])).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
