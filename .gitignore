@@ -1,4 +1,4 @@
-ebin
-.eunit
-.rebar
-*.swp
+_build
+erl_crash.dump
+rebar.lock
+test/*.beam
