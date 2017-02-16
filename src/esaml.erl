@@ -340,7 +340,6 @@ check_stale(A) ->
 validate_assertion(AssertionXml, Recipient, Audience) ->
     case decode_assertion(AssertionXml) of
         {error, Reason} ->
-            io:format("@@@@@@@@@@@@@@@@Got error : ~p~n", [Reason]),
             {error, Reason};
         {ok, Assertion} ->
             esaml_util:threaduntil([
