@@ -17,5 +17,5 @@
             {trusted_fingerprints, []}
         ]},
         {mod, {esaml, []}},
-        {vsn, "1.2.0"}
+        {vsn, "2.1.0"}
     ]}.

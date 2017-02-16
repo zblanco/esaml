@@ -82,7 +82,6 @@ generate_logout_response(IdpURL, Status, SP = #esaml_sp{metadata_uri = MetaURI})
 %% @doc Return the SP metadata as an XML element
 -spec generate_metadata(esaml:sp()) -> #xmlElement{}.
 generate_metadata(SP = #esaml_sp{org = Org, tech = Tech}) ->
-    io:format("****** SP : ~p~n", [SP]),
     Xml = esaml:to_xml(#esaml_sp_metadata{
         org = Org,
         tech = Tech,
@@ -254,8 +253,7 @@ decrypt_assertion(EncXml, #esaml_sp{key = PrivKey}, Ns) ->
         {AssertionXml, _} = xmerl_scan:string(binary_to_list(DecAssertion)),
         AssertionXml
     catch
-        Type:Error -> io:format("Type: ~p Error: ~p~n Stack : ~p", [Type, Error, erlang:get_stacktrace()]),
-        {error, bad_assertion}
+        _Type:_Error -> {error, bad_assertion}
     end.
 
 -ifdef(TEST).
