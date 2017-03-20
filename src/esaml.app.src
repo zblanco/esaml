@@ -1,5 +1,7 @@
 {application, esaml,
     [
+        {description, "SAML for erlang"},
+        {vsn, "2.1.0"},
         {applications, [
             kernel,
             inets,
@@ -10,8 +12,6 @@
             cowboy,
             ranch
         ]},
-        {description, "SAML for erlang"},
-        {vsn, "2.1.0"},
         {env, [
             {org_name, "SAML Service Provider"},
             {org_displayname, "SAML Service Provider @ Some Location"},
