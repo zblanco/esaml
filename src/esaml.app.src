@@ -6,9 +6,12 @@
             ssl,
             stdlib,
             xmerl,
-            cowboy
+            cowlib,
+            cowboy,
+            ranch
         ]},
         {description, "SAML for erlang"},
+        {vsn, "2.1.0"},
         {env, [
             {org_name, "SAML Service Provider"},
             {org_displayname, "SAML Service Provider @ Some Location"},
@@ -16,6 +19,5 @@
             {tech_contact, [{name, "SAML SP Support"}, {email, "saml-support@sp.example.com"}]},
             {trusted_fingerprints, []}
         ]},
-        {mod, {esaml, []}},
-        {vsn, "2.1.0"}
+        {mod, {esaml, []}}
     ]}.
