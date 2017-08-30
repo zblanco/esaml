@@ -66,8 +66,7 @@ saml_to_datetime(Stamp) ->
     %% check that time in UTC timezone because we don't handle another timezones properly
     $Z = binary:last(Rest),
     F = fun(B) -> list_to_integer(binary_to_list(B)) end,
-    UTCTime = {{F(YBin), F(MoBin), F(DBin)}, {F(HBin), F(MiBin), F(SBin)}},
-    calendar:universal_time_to_local_time(UTCTime).
+    {{F(YBin), F(MoBin), F(DBin)}, {F(HBin), F(MiBin), F(SBin)}}.
 
 %% @private
 -spec folduntil(F :: fun(), Acc :: term(), List :: []) -> AccOut :: term().
@@ -116,18 +115,18 @@ build_nsinfo(_Ns, Other) -> Other.
 
 %% @private
 start_ets() ->
-    case erlang:whereis(esaml_ets_table_owner) of 
-        undefined -> 
-            {ok, spawn_link(fun() -> 
-                register(esaml_ets_table_owner, self()), 
-                ets:new(esaml_assertion_seen, [set, public, named_table]), 
-                ets:new(esaml_privkey_cache, [set, public, named_table]), 
-                ets:new(esaml_certbin_cache, [set, public, named_table]), 
-                ets:new(esaml_idp_meta_cache, [set, public, named_table]), 
-                ets_table_owner() 
-            end)}; 
-        Pid -> {ok, Pid} 
-    end. 
+    case erlang:whereis(esaml_ets_table_owner) of
+        undefined ->
+            {ok, spawn_link(fun() ->
+                register(esaml_ets_table_owner, self()),
+                ets:new(esaml_assertion_seen, [set, public, named_table]),
+                ets:new(esaml_privkey_cache, [set, public, named_table]),
+                ets:new(esaml_certbin_cache, [set, public, named_table]),
+                ets:new(esaml_idp_meta_cache, [set, public, named_table]),
+                ets_table_owner()
+            end)};
+        Pid -> {ok, Pid}
+    end.
 
 %% @private
 ets_table_owner() ->
@@ -180,7 +179,7 @@ load_metadata(Url, FPs) ->
     case ets:lookup(esaml_idp_meta_cache, Url) of
         [{Url, Meta}] -> Meta;
         _ ->
-            {ok, {{_Ver, 200, _}, _Headers, Body}} = httpc:request(get, {Url, []}, [{autoredirect, true}], []),
+            {ok, {{_Ver, 200, _}, _Headers, Body}} = httpc:request(get, {Url, []}, [{autoredirect, true}, {timeout, 3000}], []),
             {Xml, _} = xmerl_scan:string(Body, [{namespace_conformant, true}]),
             case xmerl_dsig:verify(Xml, Fingerprints) of
                 ok -> ok;
@@ -197,7 +196,8 @@ load_metadata(Url) ->
     case ets:lookup(esaml_idp_meta_cache, Url) of
         [{Url, Meta}] -> Meta;
         _ ->
-            {ok, {{_Ver, 200, _}, _Headers, Body}} = httpc:request(get, {Url, []}, [{autoredirect, true}], []),
+            Timeout = application:get_env(esaml, load_metadata_timeout, 15000),
+            {ok, {{_Ver, 200, _}, _Headers, Body}} = httpc:request(get, {Url, []}, [{autoredirect, true}, {timeout, Timeout}], []),
             {Xml, _} = xmerl_scan:string(Body, [{namespace_conformant, true}]),
             {ok, Meta = #esaml_idp_metadata{}} = esaml:decode_idp_metadata(Xml),
             ets:insert(esaml_idp_meta_cache, {Url, Meta}),
@@ -251,8 +251,11 @@ check_dupe_ets(A, Digest) ->
             ok
     end.
 
+% TODO: switch to uuid_erl hex pkg
 unique_id() ->
-    "sbs" ++ integer_to_list(erlang:unique_integer([positive])).
+    "id"
+      ++ integer_to_list(erlang:system_time())
+      ++ integer_to_list(erlang:unique_integer([positive])).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -267,10 +270,9 @@ fingerprints_test() ->
     [{sha256,Sha256},{md5,Hash}] = convert_fingerprints(["SHA256:" ++ base64:encode_to_string(Sha256), "md5:" ++ base64:encode_to_string(Hash)]),
     {'EXIT', _} = (catch convert_fingerprints(["SOMEALGO:AAAAA="])).
 
-% disabled as it only works with utc time
-% datetime_test() ->
-%     "2013-05-02T17:26:53Z" = datetime_to_saml({{2013,5,2},{17,26,53}}),
-%     {{1990,11,23},{18,1,1}} = saml_to_datetime("1990-11-23T18:01:01Z").
+datetime_test() ->
+    "2013-05-02T17:26:53Z" = datetime_to_saml({{2013,5,2},{17,26,53}}),
+    {{1990,11,23},{18,1,1}} = saml_to_datetime("1990-11-23T18:01:01Z").
 
 build_nsinfo_test() ->
     EmptyNs = #xmlNamespace{},

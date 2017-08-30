@@ -109,7 +109,11 @@ setup(SP = #esaml_sp{trusted_fingerprints = FPs, metadata_uri = MetaURI,
         error("must specify a key to sign requests");
     true -> ok
     end,
-    SP#esaml_sp{trusted_fingerprints = Fingerprints}.
+    if (not (SP#esaml_sp.key =:= undefined)) and (not (SP#esaml_sp.certificate =:= undefined)) ->
+        SP#esaml_sp{sp_sign_requests = true, sp_sign_metadata = true, trusted_fingerprints = Fingerprints};
+    true ->
+        SP#esaml_sp{trusted_fingerprints = Fingerprints}
+    end.
 
 %% @doc Validate and parse a LogoutRequest element
 -spec validate_logout_request(xml(), esaml:sp()) ->
@@ -190,71 +194,48 @@ validate_assertion(Xml, SP = #esaml_sp{}) ->
 %% in the case of a replay attack.
 -spec validate_assertion(xml(), dupe_fun(), esaml:sp()) ->
         {ok, esaml:assertion()} | {error, Reason :: term()}.
-validate_assertion(EncXml, DuplicateFun, SP = #esaml_sp{}) ->
+validate_assertion(Xml, DuplicateFun, SP = #esaml_sp{}) ->
     Ns = [{"samlp", 'urn:oasis:names:tc:SAML:2.0:protocol'},
           {"saml", 'urn:oasis:names:tc:SAML:2.0:assertion'}],
-
-    Xml = 
-    case xmerl_xpath:string("/samlp:Response/saml:Assertion", EncXml, [{namespace, Ns}]) of
-        [A] -> 
-            if SP#esaml_sp.encrypt_mandatory -> {error, assertion_not_encrypted};
-               true -> A
-            end;
-        _ -> 
-            case xmerl_xpath:string("/samlp:Response/saml:EncryptedAssertion", EncXml, [{namespace, Ns}]) of
-                [EncA] -> decrypt_assertion(EncA, SP, Ns);
+    esaml_util:threaduntil([
+        fun(X) ->
+            case xmerl_xpath:string("/samlp:Response/saml:Assertion", X, [{namespace, Ns}]) of
+                [A] -> A;
                 _ -> {error, bad_assertion}
             end
-    end,
-    case Xml of
-        {error, _} = Error -> Error;
-        Assertion ->
-            esaml_util:threaduntil([
-                fun(A) ->
-                    if SP#esaml_sp.idp_signs_envelopes ->
-                        case xmerl_dsig:verify(A, SP#esaml_sp.trusted_fingerprints) of
-                            ok -> A;
-                            OuterError -> {error, {envelope, OuterError}}
-                        end;
-                    true -> A
-                    end
-                end,
-                fun(A) ->
-                    if SP#esaml_sp.idp_signs_assertions ->
-                        case xmerl_dsig:verify(A, SP#esaml_sp.trusted_fingerprints) of
-                            ok -> A;
-                            InnerError -> {error, {assertion, InnerError}}
-                        end;
-                    true -> A
-                    end
-                end,
-                fun(A) ->
-                    case esaml:validate_assertion(A, SP#esaml_sp.consume_uri, SP#esaml_sp.metadata_uri) of
-                        {ok, AR} -> AR;
-                        {error, Reason} -> {error, Reason}
-                    end
-                end,
-                fun(AR) ->
-                    case DuplicateFun(AR, xmerl_dsig:digest(Assertion)) of
-                        ok -> AR;
-                        _ -> {error, duplicate}
-                    end
-                end
-            ], Assertion)
-    end.
+        end,
+        fun(A) ->
+            if SP#esaml_sp.idp_signs_envelopes ->
+                case xmerl_dsig:verify(Xml, SP#esaml_sp.trusted_fingerprints) of
+                    ok -> A;
+                    OuterError -> {error, {envelope, OuterError}}
+                end;
+            true -> A
+            end
+        end,
+        fun(A) ->
+            if SP#esaml_sp.idp_signs_assertions ->
+                case xmerl_dsig:verify(A, SP#esaml_sp.trusted_fingerprints) of
+                    ok -> A;
+                    InnerError -> {error, {assertion, InnerError}}
+                end;
+            true -> A
+            end
+        end,
+        fun(A) ->
+            case esaml:validate_assertion(A, SP#esaml_sp.consume_uri, SP#esaml_sp.metadata_uri) of
+                {ok, AR} -> AR;
+                {error, Reason} -> {error, Reason}
+            end
+        end,
+        fun(AR) ->
+            case DuplicateFun(AR, xmerl_dsig:digest(Xml)) of
+                ok -> AR;
+                _ -> {error, duplicate}
+            end
+        end
+    ], Xml).
 
-decrypt_assertion(EncXml, #esaml_sp{key = PrivKey}, Ns) ->
-    try
-        [#xmlText{value = EncKey}] =  xmerl_xpath:string("/saml:EncryptedAssertion/xenc:EncryptedData/KeyInfo/e:EncryptedKey/e:CipherData/e:CipherValue/text()", EncXml, [{namespace, Ns}]),
-        Key = public_key:decrypt_private(base64:decode(EncKey), PrivKey, [{rsa_pad, 'rsa_pkcs1_oaep_padding'}]),
-        [#xmlText{value = CipherData}] = xmerl_xpath:string("/saml:EncryptedAssertion/xenc:EncryptedData/xenc:CipherData/xenc:CipherValue/text()", EncXml, [{namespace, Ns}]),
-        <<IVec:16/binary, EncData/binary>> = base64:decode(CipherData),
-        DecAssertion = crypto:block_decrypt(aes_cbc256, Key, IVec, EncData),
-        {AssertionXml, _} = xmerl_scan:string(binary_to_list(DecAssertion)),
-        AssertionXml
-    catch
-        _Type:_Error -> {error, bad_assertion}
-    end.
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
