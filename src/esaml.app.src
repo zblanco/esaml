@@ -1,7 +1,9 @@
 {application, esaml,
     [
         {description, "SAML for erlang"},
-        {vsn, "3.0.0"},
+        {vsn, "3.0.1"},
+        {modules, []},
+        {registered, []},
         {applications, [
             kernel,
             inets,
@@ -11,6 +13,13 @@
             cowlib,
             cowboy,
             ranch
+        ]},
+        {licenses, ["https://github.com/arekinath/esaml/blob/master/LICENSE"]},
+        {links, [
+            {"Github", "https://github.com/handnot2/esaml"},
+            {"Original Repo", "https://github.com/arekinath/esaml"},
+            {"K2InformaticsGmbH", "https://github.com/K2InformaticsGmbH/esaml"},
+            {"VendorHawk", "https://github.com/VendorHawk/esaml"}
         ]},
         {env, [
             {org_name, "SAML Service Provider"},
