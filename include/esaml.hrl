@@ -102,4 +102,5 @@
 	metadata_uri = "" :: string(),
 	consume_uri = "" :: string(),
 	logout_uri :: string() | undefined,
-	encrypt_mandatory = false :: boolean()}).
+	encrypt_mandatory = false :: boolean(),
+  entity_id :: string() | undefined}).

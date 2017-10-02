@@ -30,15 +30,25 @@ add_xml_id(Xml) ->
             namespace = #xmlNamespace{}}
         ]}.
 
+%% @private
+-spec get_entity_id(esaml:sp()) -> string().
+get_entity_id(#esaml_sp{entity_id = EntityID, metadata_uri = MetaURI}) ->
+    if (EntityID =:= undefined) ->
+        MetaURI;
+    true ->
+        EntityID
+    end.
+
 %% @doc Return an AuthnRequest as an XML element
 -spec generate_authn_request(IdpURL :: string(), esaml:sp()) -> #xmlElement{}.
-generate_authn_request(IdpURL, SP = #esaml_sp{metadata_uri = MetaURI, consume_uri = ConsumeURI}) ->
+generate_authn_request(IdpURL, SP = #esaml_sp{metadata_uri = _MetaURI, consume_uri = ConsumeURI}) ->
     Now = erlang:localtime_to_universaltime(erlang:localtime()),
     Stamp = esaml_util:datetime_to_saml(Now),
+    Issuer = get_entity_id(SP),
 
     Xml = esaml:to_xml(#esaml_authnreq{issue_instant = Stamp,
                                        destination = IdpURL,
-                                       issuer = MetaURI,
+                                       issuer = Issuer,
                                        consumer_location = ConsumeURI}),
     if SP#esaml_sp.sp_sign_requests ->
         xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
@@ -48,13 +58,14 @@ generate_authn_request(IdpURL, SP = #esaml_sp{metadata_uri = MetaURI, consume_ur
 
 %% @doc Return a LogoutRequest as an XML element
 -spec generate_logout_request(IdpURL :: string(), NameID :: string(), esaml:sp()) -> #xmlElement{}.
-generate_logout_request(IdpURL, NameID, SP = #esaml_sp{metadata_uri = MetaURI}) ->
+generate_logout_request(IdpURL, NameID, SP = #esaml_sp{metadata_uri = _MetaURI}) ->
     Now = erlang:localtime_to_universaltime(erlang:localtime()),
     Stamp = esaml_util:datetime_to_saml(Now),
+    Issuer = get_entity_id(SP),
 
     Xml = esaml:to_xml(#esaml_logoutreq{issue_instant = Stamp,
                                        destination = IdpURL,
-                                       issuer = MetaURI,
+                                       issuer = Issuer,
                                        name = NameID,
                                        reason = user}),
     if SP#esaml_sp.sp_sign_requests ->
@@ -65,13 +76,14 @@ generate_logout_request(IdpURL, NameID, SP = #esaml_sp{metadata_uri = MetaURI}) 
 
 %% @doc Return a LogoutResponse as an XML element
 -spec generate_logout_response(IdpURL :: string(), esaml:status_code(), esaml:sp()) -> #xmlElement{}.
-generate_logout_response(IdpURL, Status, SP = #esaml_sp{metadata_uri = MetaURI}) ->
+generate_logout_response(IdpURL, Status, SP = #esaml_sp{metadata_uri = _MetaURI}) ->
     Now = erlang:localtime_to_universaltime(erlang:localtime()),
     Stamp = esaml_util:datetime_to_saml(Now),
+    Issuer = get_entity_id(SP),
 
     Xml = esaml:to_xml(#esaml_logoutresp{issue_instant = Stamp,
                                        destination = IdpURL,
-                                       issuer = MetaURI,
+                                       issuer = Issuer,
                                        status = Status}),
     if SP#esaml_sp.sp_sign_requests ->
         xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
@@ -82,6 +94,7 @@ generate_logout_response(IdpURL, Status, SP = #esaml_sp{metadata_uri = MetaURI})
 %% @doc Return the SP metadata as an XML element
 -spec generate_metadata(esaml:sp()) -> #xmlElement{}.
 generate_metadata(SP = #esaml_sp{org = Org, tech = Tech}) ->
+    EntityID = get_entity_id(SP),
     Xml = esaml:to_xml(#esaml_sp_metadata{
         org = Org,
         tech = Tech,
@@ -91,7 +104,7 @@ generate_metadata(SP = #esaml_sp{org = Org, tech = Tech}) ->
         cert_chain = SP#esaml_sp.cert_chain,
         consumer_location = SP#esaml_sp.consume_uri,
         logout_location = SP#esaml_sp.logout_uri,
-        entity_id = SP#esaml_sp.metadata_uri}),
+        entity_id = EntityID}),
     if SP#esaml_sp.sp_sign_metadata ->
         xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
     true ->
@@ -223,7 +236,7 @@ validate_assertion(Xml, DuplicateFun, SP = #esaml_sp{}) ->
             end
         end,
         fun(A) ->
-            case esaml:validate_assertion(A, SP#esaml_sp.consume_uri, SP#esaml_sp.metadata_uri) of
+            case esaml:validate_assertion(A, SP#esaml_sp.consume_uri, get_entity_id(SP)) of
                 {ok, AR} -> AR;
                 {error, Reason} -> {error, Reason}
             end
