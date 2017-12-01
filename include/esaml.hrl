@@ -45,10 +45,14 @@
 	issue_instant = "" :: esaml:datetime(),
 	destination = "" :: string(),
 	issuer = "" :: string(),
+	name_format = undefined :: undefined | string(),
 	consumer_location = "" :: string()}).
 
 -record(esaml_subject, {
 	name = "" :: string(),
+	name_qualifier = undefined :: undefined | string(),
+	sp_name_qualifier = undefined :: undefined | string(),
+	name_format = undefined :: undefined | string(),
 	confirmation_method = bearer :: atom(),
 	notonorafter = "" :: esaml:datetime()}).
 
@@ -68,6 +72,10 @@
 	destination = "" :: string(),
 	issuer = "" :: string(),
 	name = "" :: string(),
+	name_qualifier = undefined :: undefined | string(),
+	sp_name_qualifier = undefined :: undefined | string(),
+	name_format = undefined :: undefined | string(),
+	session_index = "" :: string(),
 	reason = user :: esaml:logout_reason()}).
 
 -record(esaml_logoutresp, {
@@ -103,4 +111,4 @@
 	consume_uri = "" :: string(),
 	logout_uri :: string() | undefined,
 	encrypt_mandatory = false :: boolean(),
-  entity_id :: string() | undefined}).
+	entity_id :: string() | undefined}).

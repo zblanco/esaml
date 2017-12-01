@@ -12,13 +12,14 @@
 -include("esaml.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--export([setup/1, generate_authn_request/2, generate_metadata/1]).
+-export([setup/1, generate_authn_request/2, generate_authn_request/3, generate_metadata/1]).
 -export([validate_assertion/2, validate_assertion/3]).
--export([generate_logout_request/3, generate_logout_response/3]).
+-export([generate_logout_request/3, generate_logout_request/4, generate_logout_response/3]).
 -export([validate_logout_request/2, validate_logout_response/2]).
 
 -type xml() :: #xmlElement{} | #xmlDocument{}.
 -type dupe_fun() :: fun((esaml:assertion(), Digest :: binary()) -> ok | term()).
+-type nameid_format() :: undefined | string().
 -export_type([dupe_fun/0]).
 
 %% @private
@@ -40,8 +41,16 @@ get_entity_id(#esaml_sp{entity_id = EntityID, metadata_uri = MetaURI}) ->
     end.
 
 %% @doc Return an AuthnRequest as an XML element
+%% @deprecated Use generate_authn_request/3
 -spec generate_authn_request(IdpURL :: string(), esaml:sp()) -> #xmlElement{}.
-generate_authn_request(IdpURL, SP = #esaml_sp{metadata_uri = _MetaURI, consume_uri = ConsumeURI}) ->
+generate_authn_request(IdpURL, SP = #esaml_sp{}) ->
+    generate_authn_request(IdpURL, SP, undefined).
+
+%% @doc Return an AuthnRequest as an XML element
+-spec generate_authn_request(IdpURL :: string(), esaml:sp(), Format :: nameid_format()) -> #xmlElement{}.
+generate_authn_request(IdpURL,
+        SP = #esaml_sp{metadata_uri = _MetaURI, consume_uri = ConsumeURI},
+        Format) ->
     Now = erlang:localtime_to_universaltime(erlang:localtime()),
     Stamp = esaml_util:datetime_to_saml(Now),
     Issuer = get_entity_id(SP),
@@ -49,6 +58,7 @@ generate_authn_request(IdpURL, SP = #esaml_sp{metadata_uri = _MetaURI, consume_u
     Xml = esaml:to_xml(#esaml_authnreq{issue_instant = Stamp,
                                        destination = IdpURL,
                                        issuer = Issuer,
+                                       name_format = Format,
                                        consumer_location = ConsumeURI}),
     if SP#esaml_sp.sp_sign_requests ->
         xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
@@ -57,8 +67,17 @@ generate_authn_request(IdpURL, SP = #esaml_sp{metadata_uri = _MetaURI, consume_u
     end.
 
 %% @doc Return a LogoutRequest as an XML element
+%% @deprecated Use generate_logout_request/4
 -spec generate_logout_request(IdpURL :: string(), NameID :: string(), esaml:sp()) -> #xmlElement{}.
-generate_logout_request(IdpURL, NameID, SP = #esaml_sp{metadata_uri = _MetaURI}) ->
+generate_logout_request(IdpURL, NameID, SP = #esaml_sp{}) ->
+    SessionIndex = "",
+    Subject = #esaml_subject{name = NameID},
+    generate_logout_request(IdpURL, SessionIndex, Subject, SP).
+
+%% @doc Return a LogoutRequest as an XML element
+-spec generate_logout_request(IdpURL :: string(), SessionIndex :: string(), esaml:subject(), esaml:sp()) -> #xmlElement{}.
+generate_logout_request(IdpURL, SessionIndex, Subject = #esaml_subject{}, SP = #esaml_sp{metadata_uri = _MetaURI})
+        when is_record(Subject, esaml_subject) ->
     Now = erlang:localtime_to_universaltime(erlang:localtime()),
     Stamp = esaml_util:datetime_to_saml(Now),
     Issuer = get_entity_id(SP),
@@ -66,7 +85,11 @@ generate_logout_request(IdpURL, NameID, SP = #esaml_sp{metadata_uri = _MetaURI})
     Xml = esaml:to_xml(#esaml_logoutreq{issue_instant = Stamp,
                                        destination = IdpURL,
                                        issuer = Issuer,
-                                       name = NameID,
+                                       name = Subject#esaml_subject.name,
+                                       name_qualifier = Subject#esaml_subject.name_qualifier,
+                                       sp_name_qualifier = Subject#esaml_subject.sp_name_qualifier,
+                                       name_format = Subject#esaml_subject.name_format,
+                                       session_index = SessionIndex,
                                        reason = user}),
     if SP#esaml_sp.sp_sign_requests ->
         xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
