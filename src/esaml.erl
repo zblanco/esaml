@@ -84,6 +84,18 @@ nameid_map("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent") -> persistent
 nameid_map("urn:oasis:names:tc:SAML:2.0:nameid-format:transient") -> transient;
 nameid_map(S) when is_list(S) -> unknown.
 
+-spec nameid_name_qualifier_map(string()) -> undefined | string().
+nameid_name_qualifier_map("") -> undefined;
+nameid_name_qualifier_map(S) when is_list(S) -> S.
+
+-spec nameid_sp_name_qualifier_map(string()) -> undefined | string().
+nameid_sp_name_qualifier_map("") -> undefined;
+nameid_sp_name_qualifier_map(S) when is_list(S) -> S.
+
+-spec nameid_format_map(string()) -> undefined | string().
+nameid_format_map("") -> undefined;
+nameid_format_map(S) when is_list(S) -> S.
+
 -spec subject_method_map(string()) -> bearer | unknown.
 subject_method_map("urn:oasis:names:tc:SAML:2.0:cm:bearer") -> bearer;
 subject_method_map(_) -> unknown.
@@ -188,6 +200,8 @@ decode_logout_request(Xml) ->
         ?xpath_attr_required("/samlp:LogoutRequest/@Version", esaml_logoutreq, version, bad_version),
         ?xpath_attr_required("/samlp:LogoutRequest/@IssueInstant", esaml_logoutreq, issue_instant, bad_response),
         ?xpath_text_required("/samlp:LogoutRequest/saml:NameID/text()", esaml_logoutreq, name, bad_name),
+        ?xpath_attr("/samlp:LogoutRequest/saml:NameID/@SPNameQualifier", esaml_logoutreq, sp_name_qualifier, fun nameid_sp_name_qualifier_map/1),
+        ?xpath_attr("/samlp:LogoutRequest/saml:NameID/@Format", esaml_logoutreq, name_format, fun nameid_format_map/1),
         ?xpath_attr("/samlp:LogoutRequest/@Destination", esaml_logoutreq, destination),
         ?xpath_attr("/samlp:LogoutRequest/@Reason", esaml_logoutreq, reason, fun logout_reason_map/1),
         ?xpath_text("/samlp:LogoutRequest/saml:Issuer/text()", esaml_logoutreq, issuer)
@@ -241,6 +255,9 @@ decode_assertion_subject(Xml) ->
     Ns = [{"saml", 'urn:oasis:names:tc:SAML:2.0:assertion'}],
     esaml_util:threaduntil([
         ?xpath_text("/saml:Subject/saml:NameID/text()", esaml_subject, name),
+        ?xpath_attr("/saml:Subject/saml:NameID/@NameQualifier", esaml_subject, name_qualifier, fun nameid_name_qualifier_map/1),
+        ?xpath_attr("/saml:Subject/saml:NameID/@SPNameQualifier", esaml_subject, sp_name_qualifier, fun nameid_sp_name_qualifier_map/1),
+        ?xpath_attr("/saml:Subject/saml:NameID/@Format", esaml_subject, name_format, fun nameid_format_map/1),
         ?xpath_attr("/saml:Subject/saml:SubjectConfirmation/@Method", esaml_subject, confirmation_method, fun subject_method_map/1),
         ?xpath_attr("/saml:Subject/saml:SubjectConfirmation/saml:SubjectConfirmationData/@NotOnOrAfter", esaml_subject, notonorafter)
     ], #esaml_subject{}).
@@ -411,7 +428,8 @@ lang_elems(BaseTag, Val) ->
 %% @doc Convert a SAML request/metadata record into XML
 %% @private
 -spec to_xml(saml_record()) -> #xmlElement{}.
-to_xml(#esaml_authnreq{version = V, issue_instant = Time, destination = Dest, issuer = Issuer, consumer_location = Consumer}) ->
+to_xml(#esaml_authnreq{version = V, issue_instant = Time, destination = Dest,
+        issuer = Issuer, name_format = Format, consumer_location = Consumer}) ->
     Ns = #xmlNamespace{nodes = [{"samlp", 'urn:oasis:names:tc:SAML:2.0:protocol'},
                                 {"saml", 'urn:oasis:names:tc:SAML:2.0:assertion'}]},
 
@@ -423,15 +441,35 @@ to_xml(#esaml_authnreq{version = V, issue_instant = Time, destination = Dest, is
                       #xmlAttribute{name = 'Destination', value = Dest},
                       #xmlAttribute{name = 'AssertionConsumerServiceURL', value = Consumer},
                       #xmlAttribute{name = 'ProtocolBinding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"}],
-        content = [
-            #xmlElement{name = 'saml:Issuer', content = [#xmlText{value = Issuer}]}
-        ]
+        content = [#xmlElement{name = 'saml:Issuer', content = [#xmlText{value = Issuer}]}] ++
+              case is_list(Format) of
+                true ->
+                    [#xmlElement{name = 'samlp:NameIDPolicy',
+                        attributes = [#xmlAttribute{name = 'Format', value = Format}]}];
+                false ->
+                    []
+              end
     });
 
 to_xml(#esaml_logoutreq{version = V, issue_instant = Time, destination = Dest, issuer = Issuer,
-                        name = NameID, reason = Reason}) ->
+                        name = NameID, name_qualifier = NameQualifier,
+                        sp_name_qualifier = SPNameQualifier, name_format = NameFormat,
+                        session_index = SessionIndex, reason = Reason}) ->
     Ns = #xmlNamespace{nodes = [{"samlp", 'urn:oasis:names:tc:SAML:2.0:protocol'},
                                 {"saml", 'urn:oasis:names:tc:SAML:2.0:assertion'}]},
+    NameIDAttrs =
+        case is_list(NameQualifier) of
+            true -> [#xmlAttribute{name = 'NameQualifier', value = NameQualifier}];
+            false -> []
+        end ++
+        case is_list(SPNameQualifier) of
+            true -> [#xmlAttribute{name = 'SPNameQualifier', value = SPNameQualifier}];
+            false -> []
+        end ++
+        case is_list(NameFormat) of
+            true -> [#xmlAttribute{name = 'Format', value = NameFormat}];
+            false -> []
+        end,
     esaml_util:build_nsinfo(Ns, #xmlElement{name = 'samlp:LogoutRequest',
         attributes = [#xmlAttribute{name = 'xmlns:samlp', value = proplists:get_value("samlp", Ns#xmlNamespace.nodes)},
                       #xmlAttribute{name = 'xmlns:saml', value = proplists:get_value("saml", Ns#xmlNamespace.nodes)},
@@ -442,7 +480,10 @@ to_xml(#esaml_logoutreq{version = V, issue_instant = Time, destination = Dest, i
                       #xmlAttribute{name = 'Reason', value = rev_logout_reason_map(Reason)}],
         content = [
             #xmlElement{name = 'saml:Issuer', content = [#xmlText{value = Issuer}]},
-            #xmlElement{name = 'saml:NameID', content = [#xmlText{value = NameID}]}
+            #xmlElement{name = 'saml:NameID',
+                attributes = NameIDAttrs,
+                content = [#xmlText{value = NameID}]},
+            #xmlElement{name = 'samlp:SessionIndex', content = [#xmlText{value = SessionIndex}]}
         ]
     });
 
