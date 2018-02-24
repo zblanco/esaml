@@ -2,6 +2,14 @@
 
 All changes are in the `main` branch (`master` remains unchanged).
 
+### v3.4.0
+
++   Fixed issue: #4 - InResponseTo - make this available
+    In case of SP initiated SSO, the auth response includes the original
+    request ID. Make this available in the assertion subject esaml record.
+    (as `in_response_to`). The IDP initiated requestes don't include this.
+    The `in_response_to` field is set to an empty string in that case.
+
 ### v3.3.0
 
 +   `NameID` format can be passed as a parameter to `esaml_sp:generate_authn_request/3`.
