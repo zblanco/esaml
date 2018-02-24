@@ -54,7 +54,8 @@
 	sp_name_qualifier = undefined :: undefined | string(),
 	name_format = undefined :: undefined | string(),
 	confirmation_method = bearer :: atom(),
-	notonorafter = "" :: esaml:datetime()}).
+	notonorafter = "" :: esaml:datetime(),
+	in_response_to = "" :: string()}).
 
 -record(esaml_assertion, {
 	version = "2.0" :: esaml:version(),

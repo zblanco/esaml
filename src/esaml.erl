@@ -259,7 +259,8 @@ decode_assertion_subject(Xml) ->
         ?xpath_attr("/saml:Subject/saml:NameID/@SPNameQualifier", esaml_subject, sp_name_qualifier, fun nameid_sp_name_qualifier_map/1),
         ?xpath_attr("/saml:Subject/saml:NameID/@Format", esaml_subject, name_format, fun nameid_format_map/1),
         ?xpath_attr("/saml:Subject/saml:SubjectConfirmation/@Method", esaml_subject, confirmation_method, fun subject_method_map/1),
-        ?xpath_attr("/saml:Subject/saml:SubjectConfirmation/saml:SubjectConfirmationData/@NotOnOrAfter", esaml_subject, notonorafter)
+        ?xpath_attr("/saml:Subject/saml:SubjectConfirmation/saml:SubjectConfirmationData/@NotOnOrAfter", esaml_subject, notonorafter),
+        ?xpath_attr("/saml:Subject/saml:SubjectConfirmation/saml:SubjectConfirmationData/@InResponseTo", esaml_subject, in_response_to)
     ], #esaml_subject{}).
 
 -spec decode_assertion_conditions(#xmlElement{}) -> {ok, conditions()} | {error, term()}.
@@ -662,6 +663,18 @@ decode_attributes_test() ->
     Assertion = decode_assertion(Doc),
     {ok, #esaml_assertion{attributes = Attrs}} = Assertion,
     [{emailaddress, "test@test.com"}, {foo, ["george", "bar"]}, {mail, "test@test.com"}] = lists:sort(Attrs).
+
+decode_solicited_in_response_to_test() ->
+    {Doc, _} = xmerl_scan:string("<samlp:Response xmlns:samlp=\"urn:oasis:names:tc:SAML:2.0:protocol\" xmlns:saml=\"urn:oasis:names:tc:SAML:2.0:assertion\" Version=\"2.0\" IssueInstant=\"2013-01-01T01:01:01Z\"><saml:Issuer>foo</saml:Issuer><samlp:Status><samlp:StatusCode Value=\"urn:oasis:names:tc:SAML:2.0:status:Success\" /></samlp:Status><saml:Assertion Version=\"2.0\" IssueInstant=\"test\"><saml:Issuer>foo</saml:Issuer><saml:Subject><saml:NameID>foobar</saml:NameID><saml:SubjectConfirmation Method=\"urn:oasis:names:tc:SAML:2.0:cm:bearer\"><saml:SubjectConfirmationData Recipient=\"foobar123\" InResponseTo=\"_1234567890\" /></saml:SubjectConfirmation></saml:Subject><saml:Conditions NotBefore=\"before\" NotOnOrAfter=\"notafter\"><saml:AudienceRestriction><saml:Audience>foobaraudience</saml:Audience></saml:AudienceRestriction></saml:Conditions></saml:Assertion></samlp:Response>", [{namespace_conformant, true}]),
+    Resp = decode_response(Doc),
+    {ok, #esaml_response{assertion = #esaml_assertion{subject = #esaml_subject{in_response_to = ReqId}}}} = Resp,
+    "_1234567890" = ReqId.
+
+decode_unsolicited_in_response_to_test() ->
+    {Doc, _} = xmerl_scan:string("<samlp:Response xmlns:samlp=\"urn:oasis:names:tc:SAML:2.0:protocol\" xmlns:saml=\"urn:oasis:names:tc:SAML:2.0:assertion\" Version=\"2.0\" IssueInstant=\"2013-01-01T01:01:01Z\"><saml:Issuer>foo</saml:Issuer><samlp:Status><samlp:StatusCode Value=\"urn:oasis:names:tc:SAML:2.0:status:Success\" /></samlp:Status><saml:Assertion Version=\"2.0\" IssueInstant=\"test\"><saml:Issuer>foo</saml:Issuer><saml:Subject><saml:NameID>foobar</saml:NameID><saml:SubjectConfirmation Method=\"urn:oasis:names:tc:SAML:2.0:cm:bearer\"><saml:SubjectConfirmationData Recipient=\"foobar123\" /></saml:SubjectConfirmation></saml:Subject><saml:Conditions NotBefore=\"before\" NotOnOrAfter=\"notafter\"><saml:AudienceRestriction><saml:Audience>foobaraudience</saml:Audience></saml:AudienceRestriction></saml:Conditions></saml:Assertion></samlp:Response>", [{namespace_conformant, true}]),
+    Resp = decode_response(Doc),
+    {ok, #esaml_response{assertion = #esaml_assertion{subject = #esaml_subject{in_response_to = ReqId}}}} = Resp,
+    "" = ReqId.
 
 validate_assertion_test() ->
     Now = erlang:localtime_to_universaltime(erlang:localtime()),
