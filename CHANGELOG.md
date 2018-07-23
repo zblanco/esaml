@@ -2,6 +2,11 @@
 
 All changes are in the `main` branch (`master` remains unchanged).
 
+### v3.5.0
+
++   Erlang/OTP 21.0 support
+    Removed tuple calls. Thanks to PR from [zwilias](https://github.com/zwilias).
+
 ### v3.4.0
 
 +   Fixed issue: #4 - InResponseTo - make this available
