@@ -2,6 +2,15 @@
 
 All changes are in the `main` branch (`master` remains unchanged).
 
+### v3.6.0
+
++   Fixed issued: #8 - LogoutRequest Validation Error
+    Removed `ProtocolBinding` attribute from `LogoutRequest` and `LogoutResponse`.
+    Made sure the `saml:Issuer` element is in proper sequence in the requests.
+    Schema validation was failing for `LogoutRequest` and `LogoutResponse` without
+    these fixes. Thanks to [mjcloutier](https://github.com/mjcloutier) for reporting
+    this issue.
+
 ### v3.5.0
 
 +   Erlang/OTP 21.0 support
