@@ -40,6 +40,14 @@ get_entity_id(#esaml_sp{entity_id = EntityID, metadata_uri = MetaURI}) ->
         EntityID
     end.
 
+%% @private
+-spec reorder_issuer(xml()) -> xml().
+reorder_issuer(Elem) ->
+    case lists:partition(fun(#xmlElement{name = N}) -> N == 'saml:Issuer' end, Elem#xmlElement.content) of
+        {[Issuer], Other} -> Elem#xmlElement{content = [Issuer | Other]};
+        _ -> Elem
+    end.
+
 %% @doc Return an AuthnRequest as an XML element
 %% @deprecated Use generate_authn_request/3
 -spec generate_authn_request(IdpURL :: string(), esaml:sp()) -> #xmlElement{}.
@@ -61,7 +69,7 @@ generate_authn_request(IdpURL,
                                        name_format = Format,
                                        consumer_location = ConsumeURI}),
     if SP#esaml_sp.sp_sign_requests ->
-        xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
+        reorder_issuer(xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate));
     true ->
         add_xml_id(Xml)
     end.
@@ -92,7 +100,7 @@ generate_logout_request(IdpURL, SessionIndex, Subject = #esaml_subject{}, SP = #
                                        session_index = SessionIndex,
                                        reason = user}),
     if SP#esaml_sp.sp_sign_requests ->
-        xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
+        reorder_issuer(xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate));
     true ->
         add_xml_id(Xml)
     end.
@@ -109,7 +117,7 @@ generate_logout_response(IdpURL, Status, SP = #esaml_sp{metadata_uri = _MetaURI}
                                        issuer = Issuer,
                                        status = Status}),
     if SP#esaml_sp.sp_sign_requests ->
-        xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate);
+        reorder_issuer(xmerl_dsig:sign(Xml, SP#esaml_sp.key, SP#esaml_sp.certificate));
     true ->
         add_xml_id(Xml)
     end.

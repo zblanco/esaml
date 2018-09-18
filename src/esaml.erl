@@ -477,7 +477,6 @@ to_xml(#esaml_logoutreq{version = V, issue_instant = Time, destination = Dest, i
                       #xmlAttribute{name = 'IssueInstant', value = Time},
                       #xmlAttribute{name = 'Version', value = V},
                       #xmlAttribute{name = 'Destination', value = Dest},
-                      #xmlAttribute{name = 'ProtocolBinding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"},
                       #xmlAttribute{name = 'Reason', value = rev_logout_reason_map(Reason)}],
         content = [
             #xmlElement{name = 'saml:Issuer', content = [#xmlText{value = Issuer}]},
@@ -497,8 +496,7 @@ to_xml(#esaml_logoutresp{version = V, issue_instant  = Time,
                       #xmlAttribute{name = 'xmlns:saml', value = proplists:get_value("saml", Ns#xmlNamespace.nodes)},
                       #xmlAttribute{name = 'IssueInstant', value = Time},
                       #xmlAttribute{name = 'Version', value = V},
-                      #xmlAttribute{name = 'Destination', value = Dest},
-                      #xmlAttribute{name = 'ProtocolBinding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"}],
+                      #xmlAttribute{name = 'Destination', value = Dest}],
         content = [
             #xmlElement{name = 'saml:Issuer', content = [#xmlText{value = Issuer}]},
             #xmlElement{name = 'samlp:Status', content = [
