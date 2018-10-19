@@ -50,7 +50,7 @@ decode_response(_, SAMLResponse) ->
 	{Xml, _} = xmerl_scan:string(XmlData, [{namespace_conformant, true}]),
     Xml.
 
-%% @doc Encode a SAMLRequest (or SAMLResponse) as an HTTP-REDIRECT binding
+%% @doc Encode a SAMLRequest (or SAMLResponse) as an HTTP-Redirect binding
 %%
 %% Returns the URI that should be the target of redirection.
 -spec encode_http_redirect(IDPTarget :: uri(), SignedXml :: xml(), Username :: undefined | string(), RelayState :: binary()) -> uri().

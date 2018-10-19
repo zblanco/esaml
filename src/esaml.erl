@@ -548,7 +548,7 @@ to_xml(#esaml_logoutresp{version = V, issue_instant  = Time,
           undefined -> [];
           _ -> [
               #xmlElement{name = 'md:SingleLogoutService',
-                  attributes = [#xmlAttribute{name = 'Binding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT"},
+                  attributes = [#xmlAttribute{name = 'Binding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"},
                                 #xmlAttribute{name = 'Location', value = SLOLoc}]},
               #xmlElement{name = 'md:SingleLogoutService',
                   attributes = [#xmlAttribute{name = 'Binding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"},
@@ -564,7 +564,7 @@ to_xml(#esaml_logoutresp{version = V, issue_instant  = Time,
                             #xmlAttribute{name = 'Location', value = ConsumerLoc}]},
           #xmlElement{name = 'md:AssertionConsumerService',
               attributes = [#xmlAttribute{name = 'index', value = "1"},
-                            #xmlAttribute{name = 'Binding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT"},
+                            #xmlAttribute{name = 'Binding', value = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"},
                             #xmlAttribute{name = 'Location', value = ConsumerLoc}]}
       ],
 
