@@ -2,6 +2,10 @@
 
 All changes are in the `main` branch (`master` remains unchanged).
 
+### v4.0.0
+
++   Fixed issue: #11 - Support for Cowboy 2
+    
 ### v3.6.1
 
 +   Fixed issue: #9 - HTTP-REDIRECT wrong case

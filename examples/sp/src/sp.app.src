@@ -1,7 +1,7 @@
 {application, sp,
  [
-  {description, "SAML for erlang"},
-  {vsn, "1"},
+  {description, "SAML SP for erlang"},
+  {vsn, "2"},
   {registered, []},
   {included_applications, [
   ]},

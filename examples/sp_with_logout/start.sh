@@ -1,7 +1,7 @@
 #!/bin/bash
 
 HOST="${host:=127.0.0.1}"
-APP_NAME="esaml_example_sp"
+APP_NAME="esaml_example_sp_with_logout"
 COOKIE="${APP_NAME}"
 NODE_NAME="${APP_NAME}@${HOST}"
 UNAME_STR=`uname`
@@ -27,7 +27,7 @@ START_OPTS="${PATHS_OPT} ${COOKIE_OPT} ${NODE_NAME_OPT}"
 
 # DDERL start options
 echo "------------------------------------------"
-echo "Starting ESaml Example (SP)"
+echo "Starting ESaml Example (SP with logout)"
 echo "------------------------------------------"
 echo "Node Name : ${NODE_NAME}"
 echo "Cookie    : ${COOKIE}"
@@ -35,4 +35,4 @@ echo "EBIN Path : ${PATHS_OPT}"
 echo "------------------------------------------"
 
 # Starting dderl
-${EXE_NAME} ${START_OPTS} -eval "application:ensure_all_started(sp)."
+${EXE_NAME} ${START_OPTS} -eval "application:ensure_all_started(sp_with_logout)."

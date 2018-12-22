@@ -9,10 +9,17 @@
 -module(sp_handler).
 -include_lib("esaml/include/esaml.hrl").
 
--record(state, {sp, idp}).
--export([init/3, handle/2, terminate/3]).
+-export([init/2, terminate/3]).
 
-init(_Transport, Req, _Args) ->
+init(Req, State = #{initialized := true}) ->
+    Operation = cowboy_req:binding(operation, Req),
+    Method = cowboy_req:method(Req),
+    io:format("[Method] ~p~n", [Method]),
+    io:format("[Operation] ~p~n", [Operation]),
+    io:format("[State] ~p~n", [State]),
+    handle(Method, Operation, Req, State);
+
+init(Req, State) ->
     % Load the certificate and private key for the SP
     PrivKey = esaml_util:load_private_key("priv/test.key"),
     Cert = esaml_util:load_certificate("priv/test.crt"),
@@ -41,44 +48,40 @@ init(_Transport, Req, _Args) ->
     % (this call will cache after the first time around, so it will be fast)
     IdpMeta = esaml_util:load_metadata("https://some.idp.com/idp/saml2/idp/metadata.php"),
 
-    {ok, Req, #state{sp = SP, idp = IdpMeta}}.
-
-handle(Req, S = #state{}) ->
-    {Operation, Req2} = cowboy_req:binding(operation, Req),
-    {Method, Req3} = cowboy_req:method(Req2),
-    handle(Method, Operation, Req3, S).
+    State1 = State#{sp => SP, idp => IdpMeta, initialized => true},
+    init(Req, State1).
 
 % Return our SP metadata as signed XML
-handle(<<"GET">>, <<"metadata">>, Req, S = #state{sp = SP}) ->
-    {ok, Req2} = esaml_cowboy:reply_with_metadata(SP, Req),
-    {ok, Req2, S};
+handle(<<"GET">>, <<"metadata">>, Req, State = #{sp := SP}) ->
+    Req2 = esaml_cowboy:reply_with_metadata(SP, Req),
+    {ok, Req2, State};
 
 % Visit /saml/auth to start the authentication process -- we will make an AuthnRequest
 % and send it to our IDP
-handle(<<"GET">>, <<"auth">>, Req, S = #state{sp = SP,
-        idp = #esaml_idp_metadata{login_location = IDP}}) ->
-    {ok, Req2} = esaml_cowboy:reply_with_authnreq(SP, IDP, <<"foo">>, Req),
-    {ok, Req2, S};
+handle(<<"GET">>, <<"auth">>, Req, State = #{sp := SP,
+        idp := #esaml_idp_metadata{login_location = IDP}}) ->
+    Req2 = esaml_cowboy:reply_with_authnreq(SP, IDP, <<"foo">>, Req),
+    {ok, Req2, State};
 
 % Handles HTTP-POST bound assertions coming back from the IDP.
-handle(<<"POST">>, <<"consume">>, Req, S = #state{sp = SP}) ->
+handle(<<"POST">>, <<"consume">>, Req, State = #{sp := SP}) ->
     case esaml_cowboy:validate_assertion(SP, fun esaml_util:check_dupe_ets/2, Req) of
         {ok, Assertion, RelayState, Req2} ->
             Attrs = Assertion#esaml_assertion.attributes,
             Uid = proplists:get_value(uid, Attrs),
             Output = io_lib:format("<html><head><title>SAML SP demo</title></head><body><h1>Hi there!</h1><p>This is the <code>esaml_sp_default</code> demo SP callback module from eSAML.</p><table><tr><td>Your name:</td><td>\n~p\n</td></tr><tr><td>Your UID:</td><td>\n~p\n</td></tr></table><hr /><p>RelayState:</p><pre>\n~p\n</pre><p>The assertion I got was:</p><pre>\n~p\n</pre></body></html>", [Assertion#esaml_assertion.subject#esaml_subject.name, Uid, RelayState, Assertion]),
-            {ok, Req3} = cowboy_req:reply(200, [{<<"Content-Type">>, <<"text/html">>}], Output, Req2),
-            {ok, Req3, S};
+            Req3 = cowboy_req:reply(200, #{<<"Content-Type">> => <<"text/html">>}, Output, Req2),
+            {ok, Req3, State};
 
         {error, Reason, Req2} ->
-            {ok, Req3} = cowboy_req:reply(403, [{<<"content-type">>, <<"text/plain">>}],
+            Req3 = cowboy_req:reply(403, #{<<"content-type">> => <<"text/plain">>},
                 ["Access denied, assertion failed validation:\n", io_lib:format("~p\n", [Reason])],
                 Req2),
-            {ok, Req3, S}
+            {ok, Req3, State}
     end;
 
-handle(_, _, Req, S = #state{}) ->
-    {ok, Req2} = cowboy_req:reply(404, [], <<"Not found">>, Req),
-    {ok, Req2, S}.
+handle(_, _, Req, State = #{}) ->
+    Req2 = cowboy_req:reply(404, #{}, <<"Not found">>, Req),
+    {ok, Req2, State}.
 
 terminate(_Reason, _Req, _State) -> ok.
