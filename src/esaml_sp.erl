@@ -243,18 +243,28 @@ validate_assertion(Xml, DuplicateFun, SP = #esaml_sp{}) ->
           {"saml", 'urn:oasis:names:tc:SAML:2.0:assertion'}],
     esaml_util:threaduntil([
         fun(X) ->
-            case xmerl_xpath:string("/samlp:Response/saml:Assertion", X, [{namespace, Ns}]) of
+            case xmerl_xpath:string("/samlp:Response/saml:EncryptedAssertion", X, [{namespace, Ns}]) of
+                [A] -> decrypt_assertion(A, SP);
+                _ -> X
+            end
+        end,
+        fun(X) ->
+            case xmerl_xpath:string("//saml:Assertion", X, [{namespace, Ns}]) of
                 [A] -> A;
                 _ -> {error, bad_assertion}
             end
         end,
         fun(A) ->
-            if SP#esaml_sp.idp_signs_envelopes ->
-                case xmerl_dsig:verify(Xml, SP#esaml_sp.trusted_fingerprints) of
-                    ok -> A;
-                    OuterError -> {error, {envelope, OuterError}}
-                end;
-            true -> A
+            case xmerl_xpath:string("/samlp:Response/saml:EncryptedAssertion", Xml, [{namespace, Ns}]) of
+                [_] -> A;
+                _ ->
+                    if SP#esaml_sp.idp_signs_envelopes ->
+                        case xmerl_dsig:verify(Xml, SP#esaml_sp.trusted_fingerprints) of
+                            ok -> A;
+                            OuterError -> {error, {envelope, OuterError}}
+                        end;
+                    true -> A
+                    end
             end
         end,
         fun(A) ->
@@ -279,6 +289,46 @@ validate_assertion(Xml, DuplicateFun, SP = #esaml_sp{}) ->
             end
         end
     ], Xml).
+
+
+%% @doc Decrypts an encrypted assertion element.
+-spec decrypt_assertion(xml(), esaml:sp()) ->
+        {ok, esaml:assertion()} | {error, Reason :: term()}.
+decrypt_assertion(Xml, #esaml_sp{key = PrivateKey}) ->
+    XencNs = [{"xenc", 'http://www.w3.org/2001/04/xmlenc#'}],
+    [EncryptedData] = xmerl_xpath:string("./xenc:EncryptedData", Xml, [{namespace, XencNs}]),
+    [#xmlText{value = CipherValue64}] = xmerl_xpath:string("xenc:CipherData/xenc:CipherValue/text()", EncryptedData, [{namespace, XencNs}]),
+    CipherValue = base64:decode(CipherValue64),
+    SymmetricKey = decrypt_key_info(EncryptedData, PrivateKey),
+    [#xmlAttribute{value = Algorithm}] = xmerl_xpath:string("./xenc:EncryptionMethod/@Algorithm", EncryptedData, [{namespace, XencNs}]),
+    AssertionXml = block_decrypt(Algorithm, SymmetricKey, CipherValue),
+    {Assertion, _} = xmerl_scan:string(AssertionXml, [{namespace_conformant, true}]),
+    Assertion.
+
+
+decrypt_key_info(EncryptedData, Key) ->
+    DsNs = [{"ds", 'http://www.w3.org/2000/09/xmldsig#'}],
+    XencNs = [{"xenc", 'http://www.w3.org/2001/04/xmlenc#'}],
+    [KeyInfo] = xmerl_xpath:string("./ds:KeyInfo", EncryptedData, [{namespace, DsNs}]),
+    [#xmlAttribute{value = Algorithm}] = xmerl_xpath:string("./xenc:EncryptedKey/xenc:EncryptionMethod/@Algorithm", KeyInfo, [{namespace, XencNs}]),
+    [#xmlText{value = CipherValue64}] = xmerl_xpath:string("./xenc:EncryptedKey/xenc:CipherData/xenc:CipherValue/text()", KeyInfo, [{namespace, XencNs}]),
+    CipherValue = base64:decode(CipherValue64),
+    decrypt(CipherValue, Algorithm, Key).
+
+
+decrypt(CipherValue, "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p", Key) ->
+    Opts = [
+        {rsa_padding, rsa_pkcs1_oaep_padding},
+        {rsa_pad, rsa_pkcs1_oaep_padding}
+    ],
+    public_key:decrypt_private(CipherValue, Key, Opts).
+
+
+block_decrypt("http://www.w3.org/2001/04/xmlenc#aes256-cbc", SymmetricKey, CipherValue) ->
+    <<IV:16/binary, EncryptedData/binary>> = CipherValue,
+    DecryptedData = crypto:block_decrypt(aes_cbc256, SymmetricKey, IV, EncryptedData),
+    IsPadding = fun(X) -> X < 16 end,
+    lists:reverse(lists:dropwhile(IsPadding, lists:reverse(binary_to_list(DecryptedData)))).
 
 
 -ifdef(TEST).
