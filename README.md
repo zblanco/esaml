@@ -17,6 +17,15 @@ Single log-out protocols:
 
 `esaml` supports RSA+SHA1/SHA256 signing of all SP payloads, and validates signatures on all IdP responses. Compatibility flags are available to disable verification where IdP implementations lack support (see the [esaml_sp record](http://arekinath.github.io/esaml/esaml.html#type-sp), and members such as `idp_signs_logout_requests`).
 
+### Assertion Encryption
+
+The following algorithms are supported:
+
+| Encryption | Algorithms |
+|:---------- |:---------- |
+| Key Encryption | `http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p` |
+| Data Encryption | `http://www.w3.org/2009/xmlenc11#aes128-gcm`<br/>`http://www.w3.org/2001/04/xmlenc#aes128-cbc`<br/>`http://www.w3.org/2001/04/xmlenc#aes256-cbc` |
+
 ### API documentation
 
 Edoc documentation for the whole API is available at:
