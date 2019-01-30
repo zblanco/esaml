@@ -292,8 +292,6 @@ validate_assertion(Xml, DuplicateFun, SP = #esaml_sp{}) ->
 
 
 %% @doc Decrypts an encrypted assertion element.
--spec decrypt_assertion(xml(), esaml:sp()) ->
-        {ok, esaml:assertion()} | {error, Reason :: term()}.
 decrypt_assertion(Xml, #esaml_sp{key = PrivateKey}) ->
     XencNs = [{"xenc", 'http://www.w3.org/2001/04/xmlenc#'}],
     [EncryptedData] = xmerl_xpath:string("./xenc:EncryptedData", Xml, [{namespace, XencNs}]),
