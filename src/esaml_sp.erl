@@ -244,27 +244,29 @@ validate_assertion(Xml, DuplicateFun, SP = #esaml_sp{}) ->
     esaml_util:threaduntil([
         fun(X) ->
             case xmerl_xpath:string("/samlp:Response/saml:EncryptedAssertion", X, [{namespace, Ns}]) of
-                [A] -> decrypt_assertion(A, SP);
-                _ -> X
-            end
-        end,
-        fun(X) ->
-            case xmerl_xpath:string("//saml:Assertion", X, [{namespace, Ns}]) of
-                [A] -> A;
-                _ -> {error, bad_assertion}
+                [A1] ->
+                    try
+                        #xmlElement{} = DecryptedAssertion = decrypt_assertion(A1, SP),
+                        xmerl_xpath:string("/saml:Assertion", DecryptedAssertion, [{namespace, Ns}]) of
+                        [A2] -> A2
+                    catch
+                        _Error:_Reason -> {error, bad_assertion}
+                    end;
+                _ ->
+                    case xmerl_xpath:string("/samlp:Response/saml:Assertion", X, [{namespace, Ns}]) of
+                        [A3] -> A3;
+                        _ -> {error, bad_assertion}
+                    end
             end
         end,
         fun(A) ->
-            case xmerl_xpath:string("/samlp:Response/saml:EncryptedAssertion", Xml, [{namespace, Ns}]) of
-                [_] -> A;
-                _ ->
-                    if SP#esaml_sp.idp_signs_envelopes ->
-                        case xmerl_dsig:verify(Xml, SP#esaml_sp.trusted_fingerprints) of
-                            ok -> A;
-                            OuterError -> {error, {envelope, OuterError}}
-                        end;
-                    true -> A
-                    end
+            if
+                SP#esaml_sp.idp_signs_envelopes ->
+                    case xmerl_dsig:verify(Xml, SP#esaml_sp.trusted_fingerprints) of
+                        ok -> A;
+                        OuterError -> {error, {envelope, OuterError}}
+                    end;
+                true -> A
             end
         end,
         fun(A) ->
