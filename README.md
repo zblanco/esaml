@@ -30,7 +30,7 @@ The following algorithms are supported:
 
 Edoc documentation for the whole API is available at:
 
-https://hexdocs.pm/esaml/4.0.0/
+https://hexdocs.pm/esaml
 
 ### Licensing
 

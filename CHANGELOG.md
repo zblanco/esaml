@@ -2,6 +2,12 @@
 
 All changes are in the `main` branch (`master` remains unchanged).
 
+### v4.1.0
+
++   Support for Encrypted Assertions - PR #13 from [tcrossland](https://github.com/tcrossland)
+    Includes support for `aes128-gcm`, `aes128-cbc` and `aes256-cbc` data encryption algorithms
+    and `rsa-oaep-mgf1p` key encryption algorithm.
+
 ### v4.0.0
 
 +   Fixed issue: #11 - Support for Cowboy 2
