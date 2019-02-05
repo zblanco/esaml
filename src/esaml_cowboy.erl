@@ -180,7 +180,7 @@ validate_assertion(SP, DuplicateFun, Custom_Response_Security_Callback, Callback
         {'EXIT', Reason} ->
             {error, {bad_decode, Reason}, Req2};
         Xml ->
-            case SP:validate_assertion(Xml, DuplicateFun) of
+            case esaml_sp:validate_assertion(Xml, DuplicateFun, SP) of
                 {ok, A}     -> perform_extra_security_if_applicable(Custom_Response_Security_Callback, Callback_State, Xml, A, RelayState, Req2);
                 {error, E}  -> {error, E, Req2}
             end
