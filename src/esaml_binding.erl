@@ -9,7 +9,7 @@
 %% @doc SAML HTTP binding handlers
 -module(esaml_binding).
 
--export([decode_response/2, encode_http_redirect/4, encode_http_post/3]).
+-export([decode_response/2, encode_http_redirect/4, encode_http_post/3, encode_http_post/4]).
 
 -include_lib("xmerl/include/xmerl.hrl").
 -define(deflate, <<"urn:oasis:names:tc:SAML:2.0:bindings:URL-Encoding:DEFLATE">>).
@@ -73,22 +73,35 @@ redirect_username_part(_Other) -> [].
 %% form and javascript to automatically submit it.
 -spec encode_http_post(IDPTarget :: uri(), SignedXml :: xml(), RelayState :: binary()) -> html_doc().
 encode_http_post(IdpTarget, SignedXml, RelayState) ->
+    encode_http_post(IdpTarget, SignedXml, RelayState, <<>>).
+
+-spec encode_http_post(IDPTarget :: uri(), SignedXml :: xml(), RelayState :: binary(), Nonce :: binary()) -> html_doc().
+encode_http_post(IdpTarget, SignedXml, RelayState, Nonce) when is_binary(Nonce) ->
     Type = xml_payload_type(SignedXml),
 	Req = lists:flatten(xmerl:export([SignedXml], xmerl_xml)),
-    generate_post_html(Type, IdpTarget, base64:encode(Req), RelayState).
+    generate_post_html(Type, IdpTarget, base64:encode(Req), RelayState, Nonce).
 
-generate_post_html(Type, Dest, Req, RelayState) ->
+generate_post_html(Type, Dest, Req, RelayState, Nonce) ->
+    NonceFragment = case Nonce of
+        <<>> -> <<>>;
+        _ -> [<<"nonce=\"">>, Nonce, <<"\"">>]
+    end,
     iolist_to_binary([<<"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">
 <html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">
 <head>
 <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />
 <title>POST data</title>
 </head>
-<body onload=\"document.forms[0].submit()\">
+<body>
+<script ">>,NonceFragment,<<">
+document.addEventListener('DOMContentLoaded', function () {
+document.getElementById('saml-req-form').submit();
+});
+</script>
 <noscript>
 <p><strong>Note:</strong> Since your browser does not support JavaScript, you must press the button below once to proceed.</p>
 </noscript>
-<form method=\"post\" action=\"">>,Dest,<<"\">
+<form id=\"saml-req-form\" method=\"post\" action=\"">>,Dest,<<"\">
 <input type=\"hidden\" name=\"">>,Type,<<"\" value=\"">>,Req,<<"\" />
 <input type=\"hidden\" name=\"RelayState\" value=\"">>,RelayState,<<"\" />
 <noscript><input type=\"submit\" value=\"Submit\" /></noscript>
