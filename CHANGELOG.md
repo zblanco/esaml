@@ -2,6 +2,11 @@
 
 All changes are in the `main` branch (`master` remains unchanged).
 
+### v4.2.0
+
++   Erlang 21.x compatibility fix - PR #15 from [zwilias](https://github.com/zwilias)
++   Nonce in auto form submission script - Issue #16
+
 ### v4.1.0
 
 +   Support for Encrypted Assertions - PR #13 from [tcrossland](https://github.com/tcrossland)
