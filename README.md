@@ -30,7 +30,7 @@ The following algorithms are supported:
 
 Edoc documentation for the whole API is available at:
 
-http://arekinath.github.io/esaml/
+https://hexdocs.pm/esaml
 
 ### Licensing
 
