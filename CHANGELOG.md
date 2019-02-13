@@ -2,6 +2,16 @@
 
 All changes are in the `main` branch (`master` remains unchanged).
 
+### v3.7.0
+
++   Support for Encrypted Assertions - PR #13 from [tcrossland](https://github.com/tcrossland)
+    Includes support for `aes128-gcm`, `aes128-cbc` and `aes256-cbc` data encryption algorithms
+    and `rsa-oaep-mgf1p` key encryption algorithm.
+
++   Erlang 21.x compatibility fix - PR #15 from [zwilias](https://github.com/zwilias)
+
++   Nonce in auto form submission script - Issue #16
+
 ### v3.6.1
 
 +   Fixed issue: #9 - HTTP-REDIRECT wrong case
