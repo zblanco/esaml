@@ -23,7 +23,7 @@ The following algorithms are supported:
 
 | Encryption | Algorithms |
 |:---------- |:---------- |
-| Key Encryption | `http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p` |
+| Key Encryption | `http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p`<br/>`http://www.w3.org/2001/04/xmlenc#rsa-1_5` |
 | Data Encryption | `http://www.w3.org/2009/xmlenc11#aes128-gcm`<br/>`http://www.w3.org/2001/04/xmlenc#aes128-cbc`<br/>`http://www.w3.org/2001/04/xmlenc#aes256-cbc` |
 
 ### API documentation
