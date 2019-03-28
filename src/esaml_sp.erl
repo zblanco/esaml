@@ -316,7 +316,11 @@ decrypt_key_info(EncryptedData, Key) ->
     decrypt(CipherValue, Algorithm, Key).
 
 decrypt(CipherValue, "http://www.w3.org/2001/04/xmlenc#rsa-1_5", Key) ->
-    public_key:decrypt_private(CipherValue, Key);
+    Opts = [
+        {rsa_padding, rsa_pkcs1_padding},
+        {rsa_pad, rsa_pkcs1_padding}
+    ],
+    public_key:decrypt_private(CipherValue, Key, Opts);
 
 decrypt(CipherValue, "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p", Key) ->
     Opts = [
