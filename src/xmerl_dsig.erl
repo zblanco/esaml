@@ -183,6 +183,9 @@ verify(Element, Fingerprints) ->
     [#xmlText{value = Sha64}] = xmerl_xpath:string("ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestValue/text()", Element, [{namespace, DsNs}]),
     CanonSha2 = base64:decode(Sha64),
 
+    io:format(CanonSha),
+    io:format(CanonSha2),
+
     if not (CanonSha =:= CanonSha2) ->
         {error, bad_digest};
 
